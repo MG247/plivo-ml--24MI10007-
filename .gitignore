@@ -27,11 +27,8 @@ pip-wheel-metadata/
 .ipynb_checkpoints/
 
 
-predictions_english.csv
-predictions_hindi.csv
 
-SUMMARY.html
-RUNLOG.md
+
 
 *.tmp
 *.temp

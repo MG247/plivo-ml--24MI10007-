@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SUMMARY — Causal End-of-Turn Detector</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121a2b;
+      --panel-2: #18233a;
+      --text: #e8eefc;
+      --muted: #9db0d0;
+      --accent: #5b8cff;
+      --good: #2ecc71;
+      --warn: #f1c40f;
+      --bad: #ff6b6b;
+      --line: #24314d;
+      --chip: #22314f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #1a2a4a 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; }
+    h1, h2, h3 { line-height: 1.25; margin: 0 0 12px; }
+    h1 { font-size: 2rem; letter-spacing: -0.02em; }
+    h2 {
+      font-size: 1.35rem;
+      margin-top: 34px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+    h3 { font-size: 1.05rem; margin-top: 18px; color: #c9d7f5; }
+    p { margin: 0 0 12px; color: #d7e2f7; }
+    .muted { color: var(--muted); }
+    .hero {
+      background: linear-gradient(135deg, #17233d, #10182a 60%, #0f1a30);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.25);
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .chip {
+      background: var(--chip);
+      border: 1px solid var(--line);
+      color: #cfe0ff;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .metric {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--good);
+      margin: 6px 0 2px;
+    }
+    .metric.amber { color: var(--warn); }
+    .metric.blue { color: var(--accent); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 8px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: var(--panel-2);
+      color: #cfe0ff;
+      font-size: 0.92rem;
+    }
+    tr:last-child td { border-bottom: none; }
+    ul, ol { margin: 8px 0 14px 20px; color: #d7e2f7; }
+    li { margin: 6px 0; }
+    code, .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+    code {
+      background: #1a2740;
+      border: 1px solid #2a3b5d;
+      border-radius: 6px;
+      padding: 1px 6px;
+    }
+    .bar-wrap { margin: 18px 0; }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 220px 1fr 90px;
+      gap: 10px;
+      align-items: center;
+      margin: 10px 0;
+    }
+    .bar-track {
+      height: 16px;
+      background: #1a2740;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #3d74ff, #58d68d);
+    }
+    .bar-fill.base { background: linear-gradient(90deg, #6c7a96, #95a5a6); }
+    .bar-fill.warn { background: linear-gradient(90deg, #f39c12, #f1c40f); }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 800px) {
+      .two-col { grid-template-columns: 1fr; }
+      .bar-row { grid-template-columns: 1fr; }
+    }
+    .tag-human {
+      display: inline-block;
+      background: #3a2b12;
+      color: #ffd37a;
+      border: 1px solid #6a501c;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 0.78rem;
+      margin-right: 6px;
+    }
+    .tag-agent {
+      display: inline-block;
+      background: #12332a;
+      color: #7dffc4;
+      color: #7dffc4;
+      border: 1px solid #1f6b52;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 0.78rem;
+      margin-right: 6px;
+    }
+    .footer {
+      margin-top: 40px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>Causal End-of-Turn Detector</h1>
+      <p class="muted">
+        STT assignment summary for <span class="mono">plivo-ml-24MI10007</span>.
+        The system predicts <code>p_eot</code> for every annotated pause using only audio
+        available strictly before <code>pause_start</code>.
+      </p>
+      <div class="chips">
+        <span class="chip">Causal prosody features</span>
+        <span class="chip">HistGradientBoostingClassifier</span>
+        <span class="chip">English + Hindi training</span>
+        <span class="chip">≤ 5% interrupted turns</span>
+        <span class="chip">Beats silence-only VAD baseline</span>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="muted">Silence baseline delay</div>
+          <div class="metric amber">1600 ms</div>
+          <div class="muted">English, p_eot = 1.0 always</div>
+        </div>
+        <div class="card">
+          <div class="muted">Unseen Hindi transfer</div>
+          <div class="metric blue">947 ms</div>
+          <div class="muted">English-trained → Hindi-tested</div>
+        </div>
+        <div class="card">
+          <div class="muted">Combined model Hindi</div>
+          <div class="metric">430 ms</div>
+          <div class="muted">4.0% interrupted turns</div>
+        </div>
+        <div class="card">
+          <div class="muted">Combined model English</div>
+          <div class="metric">638 ms</div>
+          <div class="muted">5.0% interrupted turns</div>
+        </div>
+      </div>
+    </section>
+
+    <h2>1. Problem</h2>
+    <p>
+      Voice agents must decide whether a pause is a true end-of-turn or only a brief hold.
+      A silence-only VAD system treats every pause as finished speech and waits for a fixed
+      timer. That is safe but slow, and it is exactly what the starter baseline implements
+      by setting <code>p_eot = 1.0</code> at every pause.
+    </p>
+    <p>
+      The assignment requires a causal predictor: for each row in <code>labels.csv</code>,
+      use only audio from utterance start up to <code>pause_start</code>, output
+      <code>p_eot ∈ [0,1]</code>, and never look at audio after the pause begins.
+    </p>
+
+    <h2>2. Solution Overview</h2>
+    <div class="two-col">
+      <div class="card">
+        <h3>Feature idea</h3>
+        <p>
+          End-of-turn speech often shows falling energy, changing pitch, weaker final
+          voicing, and turn-progress effects. Continuation pauses often keep steadier
+          energy and pitch. The model therefore extracts 16 short-window causal prosodic
+          features from the last ~1.8 s before each pause.
+        </p>
+      </div>
+      <div class="card">
+        <h3>Model idea</h3>
+        <p>
+          A regularized histogram gradient-boosting classifier maps the 16 features to
+          <code>p_eot</code>. The final model is trained on both English and Hindi folders
+          and saved as <code>model.pkl</code>. Inference is done by
+          <code>predict.py --data_dir ... --out predictions.csv</code>.
+        </p>
+      </div>
+    </div>
+
+    <h3>Feature set (16 dimensions)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Group</th>
+          <th>Features</th>
+          <th>Why useful</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Energy</td>
+          <td>final, mean, std, min, max, slope, drop, relative final</td>
+          <td>Final energy drop and slope often mark completion rather than a mid-turn hold.</td>
+        </tr>
+        <tr>
+          <td>Pitch / F0</td>
+          <td>final F0, mean F0, F0 std, final F0 slope</td>
+          <td>Pitch falls or fluctuates more often near utterance ends than nonfinal pauses.</td>
+        </tr>
+        <tr>
+          <td>Voicing / timing</td>
+          <td>voicing ratio, last voiced run length, speaking-rate proxy, turn progress</td>
+          <td>Final voiced stretch and pause position give simple duration and context cues.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>3. Pipeline</h2>
+    <ol>
+      <li>Read <code>labels.csv</code> and load the matching WAV for each pause.</li>
+      <li>Crop only the causal speech window before <code>pause_start</code>.</li>
+      <li>Compute energy frames and autocorrelation F0 contour.</li>
+      <li>Build the 16-feature vector.</li>
+      <li>Train a scaled <code>HistGradientBoostingClassifier</code>.</li>
+      <li>Save the fitted pipeline to <code>model.pkl</code>.</li>
+      <li>Run <code>predict.py</code> to write <code>turn_id,pause_index,p_eot</code>.</li>
+      <li>Score with <code>score.py</code> under the ≤5% interrupted-turn constraint.</li>
+    </ol>
+
+    <h2>4. Results</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Run</th>
+          <th>Setup</th>
+          <th>Mean response delay</th>
+          <th>Interrupted turns</th>
+          <th>AUC</th>
+          <th>Interpretation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Baseline</td>
+          <td>Silence-only, English</td>
+          <td><strong>1600 ms</strong></td>
+          <td>0.0%</td>
+          <td>0.514</td>
+          <td>Status-quo VAD-style timer; safe but slow.</td>
+        </tr>
+        <tr>
+          <td>Run 2</td>
+          <td>Prosodic LR, English</td>
+          <td>1190 ms</td>
+          <td>5.0%</td>
+          <td>0.599</td>
+          <td>First real improvement from causal prosody.</td>
+        </tr>
+        <tr>
+          <td>Run 4</td>
+          <td>English-trained → Hindi-tested</td>
+          <td><strong>947 ms</strong></td>
+          <td>4.0%</td>
+          <td>0.578</td>
+          <td>Honest cross-language transfer on unseen Hindi.</td>
+        </tr>
+        <tr>
+          <td>Run 5</td>
+          <td>Combined model, English</td>
+          <td><strong>638 ms</strong></td>
+          <td>5.0%</td>
+          <td>0.946</td>
+          <td>In-sample development score after bilingual training.</td>
+        </tr>
+        <tr>
+          <td>Run 6</td>
+          <td>Combined model, Hindi</td>
+          <td><strong>430 ms</strong></td>
+          <td>4.0%</td>
+          <td>0.970</td>
+          <td>Strong bilingual fit; still causal and under the cut budget.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Latency comparison chart</h3>
+    <div class="bar-wrap">
+      <div class="bar-row">
+        <div>Silence baseline (EN)</div>
+        <div class="bar-track"><div class="bar-fill base" style="width:100%"></div></div>
+        <div class="mono">1600 ms</div>
+      </div>
+      <div class="bar-row">
+        <div>English → Hindi transfer</div>
+        <div class="bar-track"><div class="bar-fill warn" style="width:59%"></div></div>
+        <div class="mono">947 ms</div>
+      </div>
+      <div class="bar-row">
+        <div>Combined model (EN)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:40%"></div></div>
+        <div class="mono">638 ms</div>
+      </div>
+      <div class="bar-row">
+        <div>Combined model (HI)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:27%"></div></div>
+        <div class="mono">430 ms</div>
+      </div>
+    </div>
+    <p class="muted">
+      Lower mean response delay is better, provided interrupted turns stay ≤ 5%.
+      The English→Hindi 947 ms result is the main unseen-language evidence.
+      The combined-model English/Hindi scores are development diagnostics because both
+      folders were used in final training.
+    </p>
+
+    <h2>5. Why This Beats the Status Quo</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Status quo</h3>
+        <p>
+          Silence-only endpointing waits for a fixed timer after every pause. It cannot
+          distinguish “thinking pause” from “I am finished,” so it must use a long delay
+          to keep interruptions low.
+        </p>
+      </div>
+      <div class="card">
+        <h3>This solution</h3>
+        <p>
+          The model estimates completion probability from energy, pitch, voicing, and
+          turn-progress cues. High-confidence end-of-turn pauses can be answered sooner;
+          low-confidence holds wait longer.
+        </p>
+      </div>
+    </div>
+    <ul>
+      <li><strong>653 ms faster</strong> than baseline on unseen Hindi (947 vs 1600 ms) while staying under 5% interruptions.</li>
+      <li><strong>Causal by construction:</strong> feature extraction never uses audio after <code>pause_start</code>.</li>
+      <li><strong>Language-aware training:</strong> bilingual training captures Hindi prosody that English-only training misses.</li>
+      <li><strong>Simple deploy path:</strong> one <code>model.pkl</code> + one <code>predict.py</code> CLI matching the starter interface.</li>
+    </ul>
+
+    <h2>6. Summary of Markdown Files</h2>
+    <div class="two-col">
+      <div class="card">
+        <h3>RUNLOG.md</h3>
+        <p>
+          Records the experimental loop: silence baseline, logistic-regression prosody model,
+          English→Hindi transfer test, then bilingual gradient-boosting model. Each entry
+          stores command, metric, and the change made.
+        </p>
+        <p class="muted">
+          Key logged scores: 1600 ms baseline, 1190 ms LR, 947 ms transfer, 638/430 ms combined.
+        </p>
+      </div>
+      <div class="card">
+        <h3>NOTES.md</h3>
+        <p>
+          Compact technical note (≤10 sentences) describing the signals used, remaining failure
+          cases, and one-more-day plan: grouped turn holdout, error listening, stronger spectral
+          features, and probability calibration.
+        </p>
+        <p class="muted">
+          Failure modes: atypical intonation, noisy pitch/energy, continuation pauses that look complete.
+        </p>
+      </div>
+    </div>
+
+    <h2>7. Human vs Coding Agent</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Role</th>
+          <th>What was done</th>
+          <th>Why it mattered</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag-human">Human</span></td>
+          <td>
+            Chose the STT end-of-turn track; set up the environment; ran baseline / train / predict / score
+            commands; verified folder layout; created GitHub repo; checked CSV outputs; decided when to
+            stop improving and package the submission.
+          </td>
+          <td>
+            Grounded the work in the real assignment constraints, local data paths, and final repo delivery.
+          </td>
+        </tr>
+        <tr>
+          <td><span class="tag-agent">Coding agent</span></td>
+          <td>
+            Designed the causal feature set; wrote/refined <code>train.py</code> and <code>predict.py</code>;
+            proposed bilingual training; drafted <code>RUNLOG.md</code>, <code>NOTES.md</code>,
+            <code>.gitignore</code>, and this <code>SUMMARY.html</code>; diagnosed CLI and empty-file mistakes.
+          </td>
+          <td>
+            Converted the assignment into a complete, reproducible pipeline with clear evaluation and docs.
+          </td>
+        </tr>
+        <tr>
+          <td><span class="tag-human">Human</span> + <span class="tag-agent">Agent</span></td>
+          <td>
+            Iterated on results together: agent suggested experiments; human ran them, pasted scores,
+            and confirmed what worked on the actual machine.
+          </td>
+          <td>
+            Kept the solution honest (especially the English→Hindi transfer result) instead of reporting only in-sample scores.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>8. Deliverables</h2>
+    <ul>
+      <li><code>predict.py</code> — inference CLI matching the required interface</li>
+      <li><code>train.py</code> — bilingual causal feature training + model save</li>
+      <li><code>model.pkl</code> — final trained model</li>
+      <li><code>predictions.csv</code>, <code>predictions_english.csv</code>, <code>predictions_hindi.csv</code></li>
+      <li><code>RUNLOG.md</code>, <code>NOTES.md</code>, <code>SUMMARY.html</code></li>
+    </ul>
+
+    <h2>9. Final Takeaway</h2>
+    <p>
+      A silence timer is a weak endpointer because every pause looks the same. By scoring
+      causal prosody before each pause, the model can answer sooner on true ends and wait
+      longer on holds. The result is substantially lower mean response delay than the
+      1600 ms baseline while remaining under the 5% interruption budget.
+    </p>
+
+    <div class="footer">
+      Repository: <span class="mono">https://github.com/MG247/plivo-ml-24MI10007</span><br />
+      Metric note: lower mean response delay is better under ≤5% interrupted turns.
+    </div>
+  </div>
+</body>
+</html>
